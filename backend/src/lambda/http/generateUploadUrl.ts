@@ -5,6 +5,7 @@ import * as AWS from "aws-sdk";
 import {createLogger} from "../../utils/logger";
 import {DocumentClient} from "aws-sdk/lib/dynamodb/document_client";
 import UpdateItemInput = DocumentClient.UpdateItemInput;
+import * as jwt from "jsonwebtoken";
 
 const S3_BUCKET = process.env.S3_BUCKET;
 const docClient = new AWS.DynamoDB.DocumentClient();
@@ -15,11 +16,14 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   const todoId = event.pathParameters.todoId;
   const logger = createLogger('upload');
 
+  const token = event.headers.Authorization.split(" ")[1];
+  const userId = jwt.decode(token).sub;
+
   const attachmentUrl = `https://${S3_BUCKET}.s3.amazonaws.com/${todoId}`;
 
   const updateItem : UpdateItemInput = {
     TableName: todoTable,
-    Key: {id: todoId},
+    Key: {userId: userId, id: todoId},
     UpdateExpression: 'set attachmentUrl = :attachmentUrl',
     ExpressionAttributeValues: {
       ":attachmentUrl": attachmentUrl
